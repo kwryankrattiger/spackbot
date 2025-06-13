@@ -10,9 +10,9 @@ from aiohttp import web
 from dotenv import load_dotenv
 from gidgethub import sansio
 from gidgethub import aiohttp as gh_aiohttp
-from .routes import router
-from .auth import authenticate_installation
-from .helpers import get_logger
+from spackbot.routes import router
+from spackbot.auth import authenticate_installation
+from spackbot.helpers import get_logger
 
 # take environment variables from .env file (if present)
 load_dotenv()
@@ -37,6 +37,13 @@ async def main(request):
 
     # a representation of GitHub webhook event
     event = sansio.Event.from_http(request.headers, body, secret=WEBHOOK_SECRET)
+
+    if event.data["repo"]["name"] not in cfg.CONFIG:
+        # If the repo is not configured it is not allowed to send
+        # events to this installation of spackbot
+        logger.info(f"Rejected event {event}")
+        return web.Response(status=405)
+
     logger.info(f"Received event {event}")
 
     # get an installation token to make a GitHubAPI for API calls

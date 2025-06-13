@@ -1,0 +1,185 @@
+spack/spack:
+  style:
+    strategy: batch
+    # Use the cloned spack style to fix style
+    check: bin/spack style --base HEAD^
+    fix: bin/spack style --tool black --base HEAD^
+  label:
+    mapping:
+      #
+      # Core spack
+      #
+      core:
+        filename: "^(?!var)"
+      architecture:
+        filename: "^lib/spack/spack/(architecture|operating_systems|platforms)"
+      binary-packages: filename: "^lib/spack/spack/binary_distribution"
+      build-environment: filename: "^lib/spack/spack/build_environment"
+      build-systems: filename": "^lib/spack/spack/build_systems"
+      new-command:
+        filename: "^lib/spack/spack/cmd/[^/]+.py$"
+        status: "^added$"
+      commands:
+        filename:
+          - "^lib/spack/spack/cmd/[^/]+.py$"
+          - "^lib/spack/spack/test/cmd/[^/]+.py$"
+          - "^lib/spack/spack/test/(cmd_extension|commands).py$"
+      compilers:
+        filename: "^lib/spack/spack/compiler"
+      directives:
+        filename: "^lib/spack/spack/directives"
+      environments:
+        filename: "^lib/spack/spack/environment"
+      fetching:
+        filename: "^lib/spack/spack/(fetch|url|util/url|util/web)"
+      locking:
+        filename: "^lib/spack/(spack|llnl)/util/lock"
+      modules:
+        filename: "^lib/spack/spack/modules"
+      stage:
+        filename: "^lib/spack/spack/stage"
+      tests:
+        filename: "^lib/spack/spack/test"
+      utilities:
+        filename:
+          - "^lib/spack/spack/util"
+          - "^lib/spack/llnl"
+      versions:
+        filename: "^lib/spack/spack/version"
+      #
+      # Documentation
+      #
+      documentation:
+        filename: "^lib/spack/docs"
+      #
+      # GitHub
+      #
+      actions:
+        filename: "^\.github/actions"
+      workflow:
+        filename: "^\.github/workflows"
+      git:
+        filename: "^\.gitignore"
+      flake8:
+        filename: "^\.flake8"
+      licenses:
+        filename: "^LICENSE"
+      #
+      # Other
+      #
+      defaults:
+        filename: "^etc/spack/defaults"
+      vendored-dependencies:
+        filename: "^lib/spack/external"
+      sbang:
+        filename: "sbang"
+      docker:
+        filename: ["[Dd]ockerfile$", "^share/spack/docker"]
+      shell-support:
+        filename: "^share/spack/.*\.(sh|csh|fish)$"
+
+spack/spack-packages:
+  pipeline:
+    gitlab: https://gitlab.spack.io/spack/spack-packages.git
+    token: ${GITLAB_TOKEN}
+    actions:
+      rebuild-everything:
+        variables:
+          SPACK_PRUNE_UNTOUCHED: False
+          SPACK_PRUNE_UP_TO_DATE: False
+          PIPELINE_MIRROR_TEMPLATE: single-src-pr-mirrors.yaml.in
+      run: {}
+      cancel: {}
+
+  style:
+    strategy: per-file
+    check:
+      - "black --check {file}"
+      - "mypy {file}"
+    fix:
+      - "black {file}"
+  label:
+    extra-attributes:
+      package:
+        from: filename
+        match: "^repos/spack_repo/builtin/packages/[^/]+/package.py$"
+    mapping:
+      #
+      # Package types
+      #
+      intel:
+        package: "intel"
+      python:
+        package:
+          - "^python$"
+          - "^py_"
+      R:
+        package:
+          - "^r$"
+          - "^r_"
+      #
+      # Package status
+      #
+      new-package:
+        filename: "^repos/spack_repo/builtin/packages/[^/]+/package.py$"
+        status: "^added$"
+      update-package:
+        filename": "^repos/spack_repo/builtin/packages/[^/]+/package.py$"
+        status":
+          - "^modified$"
+          - "^renamed$"
+      #
+      # Variables
+      #
+      maintainers:
+        patch: "[+-] +maintainers +="
+      #
+      # Directives
+      #
+      new-version:
+        patch: "\+ +version\("
+      conflicts:
+        patch: "\+ +conflicts\("
+      dependencies:
+        patch: "\+ +depends_on\("
+      extends:
+        patch: "\+ +extends\("
+      virtual-dependencies:
+        patch: "\+ +provides\("
+      patch:
+        patch: "\+ +patch\("
+      new-variant:
+        patch: "\+ +variant\("
+      resources:
+        patch: "\+ +resource\("
+      #
+      # Functions
+      #
+      external-packages:
+         patch: "[+-] +def determine_spec_details\("
+      libraries:
+         patch: "[+-] +def libs\("
+      headers:
+         patch: "[+-] +def headers\("
+      stand-alone-tests:
+         patch: "[+-] +def test[_]?.*\("
+      #
+      # GitHub
+      #
+      actions:
+        filename: "^\.github/actions"
+      workflow:
+        filename: "^\.github/workflows"
+      git:
+        filename: "^\.gitignore"
+      flake8:
+        filename: "^\.flake8"
+      licenses:
+        filename: "^LICENSE"
+      gitlab:
+        filename: "^share/spack/gitlab"
+      #
+      # Other
+      #
+      docker:
+        filename: "[Dd]ockerfile$"

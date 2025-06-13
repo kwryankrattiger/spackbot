@@ -18,9 +18,10 @@ import sh
 from redis import Redis
 from rq import get_current_job, Queue
 
+import spackbot.actions as actions
 import spackbot.comments as comments
 import spackbot.helpers as helpers
-from .auth import REQUESTER
+from spackbot.auth import REQUESTER
 
 logger = helpers.get_logger(__name__)
 
@@ -312,83 +313,17 @@ async def fix_style_task(event):
             f"fix_style_task, user = {user}, email = {email}, fork = {fork_url}, branch = {remote_branch}\n"
         )
 
-        # At this point, we can clone the repository and make the change
-        with helpers.temp_dir() as cwd:
-            # Clone a fresh spack develop to use for spack style
-            git.clone(helpers.spack_upstream, "spack-develop")
+        message = await actions.style.fix(
+            fork_url,
+            remote_branch,
+            user,
+            email,
+            cfg.from_event(event).style_command()
+        )
 
-            spack = sh.Command(f"{cwd}/spack-develop/bin/spack")
-
-            # clone the develop repository to another folder for our PR
-            git.clone("spack-develop", "spack")
-
-            os.chdir("spack")
-
-            git.config("user.name", user)
-            git.config("user.email", email)
-
-            # This will authenticate the push with the added ssh credentials
-            git.remote("add", "upstream", helpers.spack_upstream)
-            git.remote("set-url", "origin", fork_url)
-
-            # we're on upstream/develop. Fetch just the PR branch
-            helpers.run_command(
-                git, ["fetch", "origin", f"{remote_branch}:{local_branch}"]
-            )
-
-            # check out the PR branch
-            helpers.run_command(git, ["checkout", local_branch])
-
-            # Run the style check and save the message for the user
-            check_dir = os.getcwd()
-            res, err = helpers.run_command(
-                spack, ["--color", "never", "style", "--fix", "--root", check_dir]
-            )
-            logger.debug("spack style [output]")
-            logger.debug(res)
-            logger.debug("spack style [error]")
-            logger.debug(err)
-
-            message = comments.get_style_message(res)
-
-            # Commit (allow for no changes)
-            res, err = helpers.run_command(
-                git,
-                [
-                    "commit",
-                    "-a",
-                    "-m",
-                    f"[{helpers.botname}] updating style on behalf of {user}",
-                ],
-            )
-
-            # Continue differently if the branch is up to date or not
-            if is_up_to_date(res):
-                logger.info("Unable to make any further changes")
-                message += "\nI wasn't able to make any further changes, but please see the message above for remaining issues you can fix locally!"
-                await gh.post(
-                    event.data["issue"]["comments_url"], {}, data={"body": message}
-                )
-                return
-
-            message += "\n\nI've updated the branch with style fixes."
-
-            # Finally, try to push, update the message if permission not allowed
-            try:
-                helpers.run_command(
-                    git, ["push", "origin", f"{local_branch}:{remote_branch}"]
-                )
-            except Exception:
-                logger.error("Unable to push to branch")
-                message += (
-                    f"\n\nBut it looks like I'm not able to push to your branch. 😭️"
-                    f" Did you check [Allow edits from maintainers]({allow_edits_url})"
-                    f" when you opened the PR?"
-                )
-
-            await gh.post(
-                event.data["issue"]["comments_url"], {}, data={"body": message}
-            )
+        await gh.post(
+            event.data["issue"]["comments_url"], {}, data={"body": message}
+        )
 
 
 async def copy_pr_mirror(pr_mirror_url, shared_pr_mirror_url):

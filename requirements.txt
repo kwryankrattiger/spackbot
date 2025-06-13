@@ -5,3 +5,5 @@ python_dotenv
 rq
 sh
 aws
+pytest
+pytest-asyncio

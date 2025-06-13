@@ -141,6 +141,12 @@ async def add_labels(event, gh):
     number = event.data["number"]
     logger.info(f"Labeling PR #{number}...")
 
+    if not cfg.CONFIG.has_feature("label"):
+        return
+
+    label_patterns = cfg.CONFIG[event.data["repo"]["name"]].get_label_mapping()
+    label_patterns = cfg.CONFIG[event.data["repo"]["name"]].get_label_mapping()
+
     # Iterate over modified files and create a list of labels
     # https://developer.github.com/v3/pulls/#list-pull-requests-files
     labels = set()

@@ -9,7 +9,7 @@ import traceback
 import spackbot.helpers as helpers
 
 
-async def tell_joke(gh):
+async def tell_joke(gh) -> str:
     """
     Tell a joke to ease the PR tension!
     """
@@ -24,7 +24,7 @@ async def tell_joke(gh):
     return f"> {joke['setup']}\n *{joke['punchline']}*\n😄️"
 
 
-def say_hello():
+def say_hello() -> str:
     """
     Respond to saying hello.
     """

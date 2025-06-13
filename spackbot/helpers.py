@@ -13,6 +13,7 @@ import os
 import re
 import tempfile
 
+from typing import Callable
 from datetime import datetime
 from io import StringIO
 from sh import ErrorReturnCode
@@ -55,6 +56,43 @@ alias_regex = "(%s)" % "|".join(aliases)
 
 __spackbot_log_level = None
 __supported_log_levels = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+
+
+class Singleton:
+    """Singleton class with lazy initialization."""
+    def __init__(self, factory: Callable[[], object]):
+        self.factory = factory
+        self._instance = None
+
+    @property
+    def instance(self):
+        """Initialize instance if not set, and return instance"""
+        if not self._instance:
+            self._instance = self.factory()
+        return self._instance
+
+    def __getattr__(self, name):
+        if name in ["_instance", "instance"]:
+            raise AttributeError(f"Cannot create {name}")
+        return getattr(self.instance, name)
+
+    def __getitem__(self, name):
+        return self.instance[name]
+
+    def __contains__(self, name):
+        return name in self.instance
+
+    def __call__(self, *args, **kwargs):
+        return self.instance(*args, **kwargs)
+
+    def __iter__(self):
+        return iter(self.instance)
+
+    def __str__(self):
+        return str(self.instance)
+
+    def __repr__(self):
+        return repr(self.instance)
 
 
 def get_logger(name):
