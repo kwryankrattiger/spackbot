@@ -31,6 +31,58 @@ class Style:
 
         self.__dict__.update(data)
 
+class Label:
+   """Label configs
+
+   Members:
+        label_patterns: maps labels to patterns that tell us to apply the labels.
+
+            Entries in the dict are of the form:
+            {
+                "label": {
+                    "attr1": [r"regex1.1", r"regex1.2"],
+                    "attr2": [r"regex2.1", r"regex2.2", r"regex2.3"],
+                    "attr3": r"regex3.1",
+                    ...
+                },
+                ...
+            }
+
+            attr1, attr2, etc. are attributes on files in the PR (e.g., status,
+            filename, etc).  If all attrs for a label have at least one regex match,
+            then that label will be added to the PR.
+
+        extra_attributes: a way to generate custom attributes from existing file attributes.
+            Entries in the dict are of the form:
+            {
+                "attr2": {
+                    "from": "attr1"
+                    "match": "regex",
+                    "group_id": 0
+                },
+                ...
+            }
+
+            attr2 is computed from attr1 by extracting the matched grouping at group_id.
+    """
+
+    def __init__(self, data):
+        label_pattern = data.get("mapping", {})
+        extra_attributes = data.get("extra-attributes", {})
+
+        # pre-compile all the regexes above, and ensure that all pattern dict values are lists
+        for label, pattern_dict in label_patterns.items():
+            for attr in pattern_dict.keys():
+                patterns = pattern_dict[attr]
+                if not isinstance(patterns, list):
+                    patterns = [patterns]
+                pattern_dict[attr] = [re.compile(s) for s in patterns]
+
+        for attr, rules in extra_attributes.items():
+            if "from" not in rules:
+                logger.error(f"missing 'from' in extra_attribute {attr}")
+            if "match" not in rules:
+                logger.error(f"missing 'match' in extra_attribute {attr}")
 
 class SpackbotConfig:
     def __init__(self, data: dict):
@@ -40,7 +92,7 @@ class SpackbotConfig:
             "pipeline":  # Enable gitlab pipeline management
                 ["gitlab", "actions"],
             "label":     # Label mapping to status/regex
-                ["mappings", "attributes"],
+                ["mapping", "extra-attributes"],
             "maintainers":      # ping maintainers based on patch and/or package info
                 ["git", "packages"],
             "jokes": []
@@ -86,6 +138,13 @@ class SpackbotConfig:
         conf = self.get_config("style")
         if conf:
             return Style(conf)
+        else:
+            return None
+
+    def get_label(self) -> Optional[Label]:
+        conf = self.get_config("label")
+        if conf:
+            return label(conf)
         else:
             return None
 

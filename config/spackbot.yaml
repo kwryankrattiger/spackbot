@@ -92,17 +92,13 @@ spack/spack-packages:
       cancel: {}
 
   style:
-    strategy: per-file
-    check:
-      - "black --check {file}"
-      - "mypy {file}"
-    fix:
-      - "black {file}"
+    strategy: file
+    tool: "black {file}"
   label:
     extra-attributes:
       package:
         from: filename
-        match: "^repos/spack_repo/builtin/packages/[^/]+/package.py$"
+        match: "repos/spack_repo/builtin/packages/([^/]+)/package.py$"
     mapping:
       #
       # Package types
