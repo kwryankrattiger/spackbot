@@ -3,7 +3,9 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+import spackbot.config as cfg
 import spackbot.helpers as helpers
+
 from spackbot.helpers import (
     pr_expected_base,
     pr_mirror_base_url,
@@ -15,6 +17,8 @@ from spackbot.workers import (
     prune_mirror_duplicates,
     update_mirror_index,
     delete_pr_mirror,
+)
+from spackbot.queue import (
     get_queue,
     TASK_QUEUE_LONG,
 )
@@ -24,8 +28,9 @@ WORKER_JOB_TIMEOUT = 6 * 60 * 60
 
 logger = helpers.get_logger(__name__)
 
-
 async def close_pr_mirror(event, gh):
+    config = cfg.from_event(event)
+
     payload = event.data
 
     # This should only be called when a PR is closed
@@ -38,7 +43,8 @@ async def close_pr_mirror(event, gh):
     pr_number = payload["number"]
     pr_branch = payload["pull_request"]["head"]["ref"]
 
-    pr_mirror_url = f"{pr_mirror_base_url}/pr{pr_number}_{pr_branch}"
+    pr_branch_name = helpers.pr_branch_from_event(event)
+    pr_mirror_url = f"{pr_mirror_base_url}/{pr_branch_name}"
     shared_pr_mirror_url = f"{pr_mirror_base_url}/{pr_shared_mirror}"
 
     # Get task queue info
@@ -50,7 +56,7 @@ async def close_pr_mirror(event, gh):
         "pr_branch": pr_branch,
     }
 
-    if is_merged and base_branch == pr_expected_base:
+    if config.pipeline.shared_pr_mirror and is_merged and base_branch == pr_expected_base:
         logger.info(
             f"PR {pr_number}/{pr_branch} merged to develop, graduating binaries"
         )

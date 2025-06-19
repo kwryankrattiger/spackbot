@@ -5,11 +5,13 @@
 
 import re
 
+import spackbot.config as cfg
 import spackbot.helpers as helpers
+import spackbot.workers as workers
 
 logger = helpers.get_logger(__name__)
 
-async def add_labels(event, gh):
+async def add_labels(event, gh, config):
     """
     Add labels to a pull request
     """
@@ -17,11 +19,8 @@ async def add_labels(event, gh):
     number = event.data["number"]
     logger.info(f"Labeling PR #{number}...")
 
-    if not cfg.CONFIG.has_feature("label"):
-        return
-
-    label_patterns = cfg.from_event(event).get_label().label_patterns
-    extra_attributes = cfg.from_event(event).get_label().extra_attributes
+    label_patterns = config.label_patterns
+    extra_attributes = config.extra_attributes
 
     # Iterate over modified files and create a list of labels
     # https://developer.github.com/v3/pulls/#list-pull-requests-files
@@ -32,8 +31,8 @@ async def add_labels(event, gh):
         logger.info(f"Filename: {filename}")
         logger.info(f"Status: {status}")
 
-        spackbot.actions.label.compute_file_attributes(file, extra_attributes)
-        labels.update(spackbot.actions.label.collect_labels(file, label_mapping))
+        workers.compute_file_attributes(file, extra_attributes)
+        labels.update(workers.collect_labels(file, label_mapping))
 
     logger.info(f"Adding the following labels: {labels}")
 

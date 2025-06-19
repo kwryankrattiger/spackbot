@@ -320,3 +320,10 @@ def s3_parse_url(url, default_bucket="spack-binaries-prs", default_prefix="dummy
         )
 
     return parsed
+
+def pr_branch_from_event(pr_event):
+    payload = pr_event.data
+    pr_number = payload["number"]
+    pr_branch = payload["pull_request"]["head"]["ref"]
+    return f"pr{pr_number}_{pr_branch}"
+

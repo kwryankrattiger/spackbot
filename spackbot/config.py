@@ -31,10 +31,11 @@ class Style:
 
         self.__dict__.update(data)
 
-class Label:
-   """Label configs
 
-   Members:
+class Label:
+    """Label configs
+
+    Members:
         label_patterns: maps labels to patterns that tell us to apply the labels.
 
             Entries in the dict are of the form:
@@ -84,17 +85,31 @@ class Label:
             if "match" not in rules:
                 logger.error(f"missing 'match' in extra_attribute {attr}")
 
+
 class SpackbotConfig:
     def __init__(self, data: dict):
+        # Very simple schema check
         supported_keys = {
-            "style":     # configuration on how to check and fix style for PR
-                ["tools"],
-            "pipeline":  # Enable gitlab pipeline management
-                ["gitlab", "actions"],
-            "label":     # Label mapping to status/regex
-                ["mapping", "extra-attributes"],
-            "maintainers":      # ping maintainers based on patch and/or package info
-                ["git", "packages"],
+            # configuration on how to check and fix style for PR
+            "style": {
+                "params": ["tools"],
+                "cls": Style,
+            },
+            # Enable gitlab pipeline management
+            "pipeline": {
+                "params": ["gitlab", "actions"],
+                "cls": None,
+            },
+            # Label mapping to status/regex
+            "label": {
+                "params": ["mapping", "extra-attributes"],
+                "cls": Label,
+            },
+            # ping maintainers based on patch
+            "maintainers": {
+                "params": ["git", "packages"],
+                "cls": None,
+            },
             "jokes": []
         }
 
@@ -125,64 +140,22 @@ class SpackbotConfig:
                     message += f"], "
             raise RuntimeError(f"Dectected unrecognized keys: {message}")
 
-        self.__dict__.update(data)
-        self._labels_compiled = False
+        # Init configs
+        self.style = None
+        self.label  = None
+        self.pipeline  = None
+        self.maintainers   = None
+        self.jokes = None
 
-    def get_config(self, feature) -> Dict[str,Any]:
-        return getattr(self, feature, {})
+        for section in data:
+            if supported_keys[section]["cls"]:
+                setattr(self,
+                    f"_{section}",
+                    supported_keys[section]["cls"](data[section])
+                )
 
     def has_feature(self, feature):
-        return feature in self.__dict__
-
-    def get_style(self) -> Optional[Style]:
-        conf = self.get_config("style")
-        if conf:
-            return Style(conf)
-        else:
-            return None
-
-    def get_label(self) -> Optional[Label]:
-        conf = self.get_config("label")
-        if conf:
-            return label(conf)
-        else:
-            return None
-
-    def _compile_label_patterns(self):
-        """Compile regex match strings once"""
-        if self._labels_compiled:
-            return
-
-        self._labels_compiled = True
-
-        label_pattern = self.get_config("label").get("mapping")
-        if label_pattern:
-            for label, pattern_dict in label_patterns.items():
-                for attr in pattern_dict.keys():
-                    patterns = pattern_dict[attr]
-                    if not isinstance(patterns, list):
-                        patterns = [patterns]
-                    pattern_dict[attr] = [re.compile(s) for s in patterns]
-
-        attr_pattern = self.get_config("label").get("extra_attributes")
-        if attr_pattern:
-            for attr in attr_pattern.keys():
-                pattern = attr_pattern[attr]
-                attr_pattern[attr] = re.compile(pattern)
-
-    def get_label_mappings() -> Optional[Dict[str, Any]]:
-        if not self.has_feature("label"):
-            return None
-
-        self._compile_label_patterns()
-        return self.get_config("label").get("mapping")
-
-    def get_label_attributes() -> Optional[Dict[str, Any]]:
-        if not self.has_feature("label"):
-            return None
-
-        self._compile_label_patterns()
-        return self.get_config("label").get("extra_attributes")
+        return getattr(self, feature) is not None
 
 
 def _load_config():
@@ -203,16 +176,17 @@ def _load_config():
 
 CONFIG: Dict[str, SpackbotConfig] = Singleton(_load_config)
 
+
 def from_event(event) -> Optional[SpackbotConfig]:
     try:
-        repo_name = event.data["repo"]["name"]
+        repo_name = event.data["repository"]["full_name"]
     except KeyError:
-        logger.error("Malformed event data, expected repo.name")
+        logger.error("Malformed event data, expected 'repository' attribute")
         return None
 
     try:
         return CONFIG[repo_name]
     except KeyError:
-        logger.error(f"Invalid repo {repo_name}")
+        logger.error(f"Unconfigured repository: {repo_name}")
 
     return None

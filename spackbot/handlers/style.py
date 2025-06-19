@@ -9,6 +9,8 @@ import spackbot.helpers as helpers
 from spackbot.workers import (
     fix_style_task,
     report_style_failure,
+)
+from spackbot.queue import (
     get_queue,
     WORKER_JOB_TIMEOUT,
     TASK_QUEUE_SHORT,
@@ -39,6 +41,10 @@ async def fix_style(event, gh, *args, **kwargs):
     """
     Respond to a request to fix style by placing a task in the work queue
     """
+    config = cfg.from_event(event)
+    if not config.has_feature("style"):
+        return
+
     job_metadata = {
         # This object is attached to job, so we can access it from within the
         # job's on_failure callback or from the job itself.
@@ -50,6 +56,7 @@ async def fix_style(event, gh, *args, **kwargs):
     fix_style_job = task_q.enqueue(
         fix_style_task,
         event,
+        config.style,
         job_timeout=WORKER_JOB_TIMEOUT,
         meta=job_metadata,
         on_failure=report_style_failure,

@@ -7,3 +7,4 @@ sh
 aws
 pytest
 pytest-asyncio
+fakeredis

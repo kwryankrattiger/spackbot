@@ -1,4 +1,6 @@
 spack/spack:
+  maintainers:
+    strategy: git
   style:
     strategy: batch
     # Use the cloned spack style to fix style
@@ -82,6 +84,8 @@ spack/spack-packages:
   pipeline:
     gitlab: https://gitlab.spack.io/spack/spack-packages.git
     token: ${GITLAB_TOKEN}
+    shared_pr_mirror: False
+    base_mirror_url: s3://spack-binaries-prs
     actions:
       rebuild-everything:
         variables:
@@ -89,7 +93,14 @@ spack/spack-packages:
           SPACK_PRUNE_UP_TO_DATE: False
           PIPELINE_MIRROR_TEMPLATE: single-src-pr-mirrors.yaml.in
       run: {}
-      cancel: {}
+      cleanup:
+        branch: True
+        mirrors: True
+
+  maintainers:
+    strategy:
+      - spack-packages
+      - git
 
   style:
     strategy: file

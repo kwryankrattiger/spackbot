@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 import os
+import sys
 
 import aiohttp
 from aiohttp import web
@@ -38,10 +39,10 @@ async def main(request):
     # a representation of GitHub webhook event
     event = sansio.Event.from_http(request.headers, body, secret=WEBHOOK_SECRET)
 
-    if event.data["repo"]["name"] not in cfg.CONFIG:
+    if not cfg.from_event(event):
         # If the repo is not configured it is not allowed to send
         # events to this installation of spackbot
-        logger.info(f"Rejected event {event}")
+        logger.debug(f"Rejected event {event.event}:{event.delivery_id}")
         return web.Response(status=405)
 
     logger.info(f"Received event {event}")
@@ -65,6 +66,17 @@ async def main(request):
 
 
 if __name__ == "__main__":
+    try:
+        # Load and validate configuration on start
+        cfg.validate()
+    except SpackbotConfigError as e:
+        logger.error(f"Invalid fields detected in config:\n{e}")
+        exit(1)
+
+    # If the validate argument is passed, don't start the web app
+    if sys.args[1] == "validate":
+        exit(0)
+
     app = web.Application()
     app.add_routes(routes)
     port = os.environ.get("PORT") or None

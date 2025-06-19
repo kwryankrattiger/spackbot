@@ -1,13 +1,19 @@
+# Copyright 2013-2021 Lawrence Livermore National Security, LLC and other
+# Spack Project Developers. See the top-level COPYRIGHT file for details.
+#
+# SPDX-License-Identifier: (Apache-2.0 OR MIT)
+
+import os
 import pytest
 
-import spackbot.actions.label as label
+import spackbot.workers.label as label
 
-@pytest.mark.parametrize("file_data", [("lib/spack/spack/component/test.py", "component"), ("lib/spack/spack/xx/test.py", "xx")])
+@pytest.mark.parametrize("file_data", [("lib/spack/spack/component/test.py", "component"), ("not/a/component/object.txt", "")])
 def test_label_custom_attributes(file_data):
     attribute = {
         "basename": {
             "from": "filename",
-            "match": ".*/([^/]+.py)$"
+            "match": ".*/([^/]+)$"
         },
         "component": {
             "from": "filename",
@@ -34,12 +40,10 @@ def test_label_custom_attributes(file_data):
     assert file["status"] == "added"
 
     assert "basename" in file
-    assert file["basename"] == "test.py"
+    assert file["basename"] == os.path.basename(file_data[0])
     assert "component" in file
     assert file["component"] == file_data[1]
     assert "short_component" in file
     assert file["short_component"] == file_data[1][:4]
 
-
-def test_label_mapping():
 

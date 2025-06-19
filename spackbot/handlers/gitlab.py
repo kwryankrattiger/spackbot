@@ -9,6 +9,9 @@ import os
 from spackbot.workers import (
     run_pipeline_task,
     report_pipeline_failure,
+)
+
+from spackbot.queue import (
     get_queue,
     TASK_QUEUE_SHORT,
     WORKER_JOB_TIMEOUT,
@@ -56,19 +59,3 @@ async def run_pipeline(event, gh, **kwargs):
         on_failure=report_pipeline_failure,
     )
     logger.info(f"Run pipeline job enqueued: {scheduled_job.id}")
-
-
-async def close_pr_gitlab_branch(event, gh):
-    payload = event.data
-
-    pr_number = payload["number"]
-    pr_branch = payload["pull_request"]["head"]["ref"]
-    pr_branch_name = f"pr{pr_number}_{pr_branch}"
-
-    url = helpers.gitlab_spack_project_url
-    url = f"{url}/repository/branches/{pr_branch_name}"
-
-    GITLAB_TOKEN = os.environ.get("GITLAB_TOKEN")
-    headers = {"PRIVATE-TOKEN": GITLAB_TOKEN}
-
-    await helpers.delete(url, headers=headers)
