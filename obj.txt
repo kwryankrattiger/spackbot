@@ -1,0 +1,51 @@
+{
+  "spec": {
+    "_meta": {
+      "version": 3
+    },
+    "nodes": [
+      {
+        "name": "zstd",
+        "version": "1.5.2",
+        "arch": {
+          "platform": "linux",
+          "platform_os": "ubuntu18.04",
+          "target": "x86_64"
+        },
+        "compiler": {
+          "name": "gcc",
+          "version": "8.4.0"
+        },
+        "namespace": "builtin",
+        "parameters": {
+          "build_system": "makefile",
+          "compression": [
+            "none"
+          ],
+          "libs": [
+            "shared",
+            "static"
+          ],
+          "programs": true,
+          "cflags": [],
+          "cppflags": [],
+          "cxxflags": [],
+          "fflags": [],
+          "ldflags": [],
+          "ldlibs": []
+        },
+        "package_hash": "qepkpvgnidycnst4gail65ea3nxozmfvtoqqg4yogcb7rhmbyluq====",
+        "hash": "2b73tirbzuagu4mxnldwso2i2pwky4gz"
+      }
+    ]
+  },
+  "buildcache_layout_version": 1,
+  "binary_cache_checksum": {
+    "hash_algorithm": "sha256",
+    "hash": "99e15d0a92f5901b54bfa12ee5cb4aca50081c4c7dac38a475a19d55c3b18359"
+  },
+  "buildinfo": {
+    "relative_prefix": "linux-ubuntu18.04-x86_64/gcc-8.4.0/zstd-1.5.2-2b73tirbzuagu4mxnldwso2i2pwky4gz",
+    "relative_rpaths": false
+  }
+}

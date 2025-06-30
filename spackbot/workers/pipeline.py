@@ -72,23 +72,6 @@ async def check_gitlab_has_latest(branch_name, pr_head_sha, gh, comments_url):
     return True
 
 
-def post_failure_message(job, msg):
-    """
-    Get the api token from the job metadata, use it to post a comment on
-    the PR containing the excepttion encountered and stack trace.
-
-    """
-    token = None
-    if "token" in job.meta:
-        token = job.meta["token"]
-
-    url = job.meta["post_comments_url"]
-    data = {"body": msg}
-
-    helpers.synchronous_http_request(url, data=data, token=token)
-    logger.error(msg)
-
-
 def report_pipeline_failure(job, connection, type, value, traceback):
     user_msg = comments.format_error_message(
         "I encountered an error attempting to run the pipeline.",

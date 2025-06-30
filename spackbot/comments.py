@@ -69,10 +69,12 @@ def format_error_message(msg, e_type, e_value, tb):
     parameters e_type, e_value, and tb (for traceback) should be the same as
     returned by sys.exc_info().
     """
-    buffer = io.StringIO()
-    traceback.print_tb(tb, file=buffer)
-    tb_contents = buffer.getvalue()
-    buffer.close()
+    # Ignore for tests
+    if traceback:
+        buffer = io.StringIO()
+        traceback.print_tb(tb, file=buffer)
+        tb_contents = buffer.getvalue()
+        buffer.close()
 
     return f"""
 {msg}

@@ -7,7 +7,7 @@ spack/spack:
     check: bin/spack style --base HEAD^
     fix: bin/spack style --tool black --base HEAD^
   label:
-    mapping:
+    label-patterns:
       #
       # Core spack
       #
@@ -104,13 +104,15 @@ spack/spack-packages:
 
   style:
     strategy: file
-    tool: "black {file}"
+    tool:
+      - "black {file}"
+      - "mypy {file}"
   label:
     extra-attributes:
       package:
         from: filename
         match: "repos/spack_repo/builtin/packages/([^/]+)/package.py$"
-    mapping:
+    label-patterns:
       #
       # Package types
       #

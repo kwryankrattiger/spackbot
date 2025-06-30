@@ -16,16 +16,20 @@ def get_dummy_data(feature):
     elif feature == "pipeline":
         return {"pipeline": {
             "gitlab": "https://gitlab.dummy.io",
-            "actions": []
         }}
     elif feature == "label":
         return {"label": {
-            "mappings": [
-                {
-                    "filters": [],
-                    "labels": []
-                }
-            ]
+            "extra-attributes": {
+                "fname": {
+                    "from": "filename",
+                    "match": ".*/(.*)\\..*",
+                },
+            },
+            "label-patterns": {
+                "fname": {
+                    "filename": [".*/(.*)\\..*"]
+                },
+            }
         }}
     elif feature == "maintainers":
         return {"maintainers": {
@@ -34,10 +38,12 @@ def get_dummy_data(feature):
         }}
     elif feature == "jokes":
         return {"jokes": True}
+    else:
+        return {feature: False}
 
 
 @pytest.fixture
-def use_dummy_config(tmpdir, monkeypatch):
+def mock_config(tmpdir, monkeypatch):
     dummy_config = {}
     dummy_config.update(get_dummy_data("style"))
     dummy_config.update(get_dummy_data("pipeline"))
@@ -51,12 +57,16 @@ def use_dummy_config(tmpdir, monkeypatch):
     monkeypatch.setenv("SPACKBOT_CONFIG_FILE", cfg_file)
 
 
-@pytest.mark.parametrize("key", ["style", "pipeline", "label", "maintainers", "jokes"])
+@pytest.mark.parametrize("key", ["style", "pipeline", "label", "maintainers", "jokes", "unrecognized"])
 def test_config_keys(key):
-    cfg.SpackbotConfig(get_dummy_data(key))
+    if not key == "unrecognized":
+        cfg.SpackbotConfig(get_dummy_data(key))
+    else:
+        with pytest.raises(cfg.SpackbotConfigurationError, match="Dectected unrecognized keys"):
+            cfg.SpackbotConfig(get_dummy_data(key))
 
 
-def test_config_load(use_dummy_config, tmpdir):
+def test_config_load(mock_config, tmpdir):
     assert "repo/dummy" in cfg.CONFIG
     config = cfg.CONFIG["repo/dummy"]
 
@@ -66,14 +76,14 @@ def test_config_load(use_dummy_config, tmpdir):
     assert config.has_feature("maintainers")
     assert not config.has_feature("jokes")
 
-    assert config.get_style().tools[0] == "noop"
+    assert config.style.tools[0] == "noop"
 
 
 @pytest.mark.parametrize("repo_name", ["repo/dummy", "repo/does_not_exist"])
-def test_config_from_event(use_dummy_config, repo_name):
+def test_config_from_event(mock_config, repo_name):
     data = {
-        "repo": {
-            "name": repo_name,
+        "repository": {
+            "full_name": repo_name,
         },
     }
     event = sansio.Event(data, event="test", delivery_id="0")

@@ -29,7 +29,7 @@ def compute_file_attributes(file, attributes):
         retry_attrs = {}
         for attr in unresolved_attrs:
             if attr in file:
-                logger.warn(f"skipping attribute {attr}, already exists")
+                logger.warning(f"skipping attribute {attr}, already exists")
                 continue
 
             from_attr = attributes[attr]["from"]

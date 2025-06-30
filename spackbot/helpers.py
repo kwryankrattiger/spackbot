@@ -321,9 +321,26 @@ def s3_parse_url(url, default_bucket="spack-binaries-prs", default_prefix="dummy
 
     return parsed
 
-def pr_branch_from_event(pr_event):
+def pr_branch_from_event(pr_event: "gidgethub.abc.Event"):
     payload = pr_event.data
     pr_number = payload["number"]
     pr_branch = payload["pull_request"]["head"]["ref"]
     return f"pr{pr_number}_{pr_branch}"
+
+
+def post_failure_message(job: "rq.Job", msg: str):
+    """
+    Get the api token from the job metadata, use it to post a comment on
+    the PR containing the excepttion encountered and stack trace.
+
+    """
+    token = None
+    if "token" in job.meta:
+        token = job.meta["token"]
+
+    url = job.meta["post_comments_url"]
+    data = {"body": msg}
+
+    helpers.synchronous_http_request(url, data=data, token=token)
+    logger.error(msg)
 

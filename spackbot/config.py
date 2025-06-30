@@ -6,15 +6,20 @@
 """Load the configuration file for spackbot
 """
 
-import os
-import yaml
 import enum
+import os
+import re
+import yaml
 
 from typing import Any, Dict, List, Optional
 
 from spackbot.helpers import Singleton, get_logger
 
 logger = get_logger(__name__)
+
+class Pipeline:
+    def __init__(self, *args, **kwargs):
+        pass
 
 class Style:
     class Strategy(enum.Enum):
@@ -68,7 +73,7 @@ class Label:
     """
 
     def __init__(self, data):
-        label_pattern = data.get("mapping", {})
+        label_patterns = data.get("label-patterns", {})
         extra_attributes = data.get("extra-attributes", {})
 
         # pre-compile all the regexes above, and ensure that all pattern dict values are lists
@@ -98,19 +103,22 @@ class SpackbotConfig:
             # Enable gitlab pipeline management
             "pipeline": {
                 "params": ["gitlab", "actions"],
-                "cls": None,
+                "cls": Pipeline,
             },
             # Label mapping to status/regex
             "label": {
-                "params": ["mapping", "extra-attributes"],
+                "params": ["label-patterns", "extra-attributes"],
                 "cls": Label,
             },
             # ping maintainers based on patch
             "maintainers": {
                 "params": ["git", "packages"],
-                "cls": None,
+                "cls": Pipeline,
             },
-            "jokes": []
+            "jokes": {
+                "params": [],
+                "cls": None,
+            }
         }
 
 
@@ -125,10 +133,10 @@ class SpackbotConfig:
                     continue
 
                 for option in data[key]:
-                    if option not in supported_keys[key]:
-                        keys = bad_keys.get(option, [])
-                        keys.append(key)
-                        bad_keys[option] = keys
+                    if option not in supported_keys[key]["params"]:
+                        options = bad_keys.get(key, [])
+                        options.append(option)
+                        bad_keys[key] = options
 
         if bad_keys:
             message = ""
@@ -138,7 +146,7 @@ class SpackbotConfig:
                 message += ", ".join(keys)
                 if not level == "_":
                     message += f"], "
-            raise RuntimeError(f"Dectected unrecognized keys: {message}")
+            raise SpackbotConfigurationError(f"Dectected unrecognized keys: {message}")
 
         # Init configs
         self.style = None
@@ -150,7 +158,7 @@ class SpackbotConfig:
         for section in data:
             if supported_keys[section]["cls"]:
                 setattr(self,
-                    f"_{section}",
+                    f"{section}",
                     supported_keys[section]["cls"](data[section])
                 )
 
@@ -190,3 +198,6 @@ def from_event(event) -> Optional[SpackbotConfig]:
         logger.error(f"Unconfigured repository: {repo_name}")
 
     return None
+
+class SpackbotConfigurationError(RuntimeError):
+    """Configuration error detected"""

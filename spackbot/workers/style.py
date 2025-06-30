@@ -44,7 +44,7 @@ async def fix_style(git_url: str, branch: str, user: str, email: str, files: Lis
         git.clone(git_url, "fix-style")
         os.chdir("fix-style")
 
-        # Confgire the user
+        # Configure the user
         git.config("user.name", user)
         git.config("user.email", email)
 
